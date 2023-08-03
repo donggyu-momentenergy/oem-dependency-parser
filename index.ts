@@ -1,3 +1,5 @@
+import { argv } from "process";
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const fs = require("node:fs/promises");
 
@@ -29,12 +31,18 @@ const structure1: RecursivePrimitive = {
 		},
 		"eb400": {
 			variant: ["B", "R"],
-			batteryCode: "abcdefg",
+			// batteryCode: ["A", "B"]
 		},
-		"eb500": "eb500",
+		"eb500": null,
 	},
-	batteryCode: ["1234", "5678"]
+	batteryCode: ["1234", "5678"],
 };
+
+const DEBUG_MODE = Boolean(argv[2]) || false;
+
+function log(...items: any[]) {
+	if (DEBUG_MODE) console.log(...items);
+}
 
 /**
  * 
@@ -57,11 +65,11 @@ function createAllCombinations(
 			combinations.push({ ...objSoFar, [rootKey]: root });
 		} else {
 			for (const key in root) {
-				console.log("=====");
-				console.log(rootKey.toUpperCase(), root);
-				console.log("-----");
-				console.log(`${rootKey}.${key}`, root[key]);
-				if (typeof root[key] === "object") {
+				log("=====", level);
+				log(`${rootKey.toUpperCase()} =`, root);
+				log("-----");
+				log(`${rootKey}.${key} =`, root[key]);
+				if (root[key] && typeof root[key] === "object") {
 					const children = createAllCombinations(
 						root[key] as RecursivePrimitive,
 						level + 1,
@@ -70,7 +78,7 @@ function createAllCombinations(
 					);
 					combinations = combinations.concat(children);
 				} else {
-					combinations.push({ ...objSoFar, [rootKey]: root[key] });
+					combinations.push({ ...objSoFar, [rootKey]: root[key] || key });
 				}
 			}
 		}
@@ -81,10 +89,10 @@ function createAllCombinations(
 		} else {
 			let newCombos: Primitive[] = [];
 			for (const key in root) {
-				console.log("=====");
-				console.log(rootKey.toUpperCase(), root);
-				console.log("-----");
-				console.log(`${rootKey}.${key}`, root[key]);
+				log("=====", level);
+				log(`${rootKey.toUpperCase()} =`, root);
+				log("-----");
+				log(`${rootKey}.${key} =`, root[key]);
 	
 				const children = createAllCombinations(
 					root[key] as RecursivePrimitive,
@@ -95,8 +103,6 @@ function createAllCombinations(
 	
 				if (newCombos.length) {
 					const newNewCombos: Primitive = [];
-					// console.log("NEWCOMBO SO FAR", newCombos.length);
-					// console.log("CHILDREN SO FAR", children.length);
 					for (const newCombo of newCombos) {
 						if (typeof newCombo === "object") {
 							for (const child of children) {
@@ -114,9 +120,9 @@ function createAllCombinations(
 				combinations = newCombos;
 			}
 		}
-		
 	}
-	console.log(rootKey, combinations.length);
+
+	log(rootKey, combinations.length);
 	
 	// return JSON.parse(JSON.stringify(combinations));
 	return combinations;
@@ -134,7 +140,7 @@ function countAllCombinations(root: RecursivePrimitive, level = 0): number {
 	if (level % 2 === 1) { // odd
 		combinations--;
 		for (const key in root) {
-			console.log(`level ${level}, root = ${root} key -> ${key}`);
+			log(`level ${level}, root = ${root} key -> ${key}`);
 			if (Array.isArray(root[key])) {
 				combinations = (root[key] as Primitive[])?.length;
 				break;
@@ -146,17 +152,17 @@ function countAllCombinations(root: RecursivePrimitive, level = 0): number {
 		}
 	} else { // even
 		for (const key in root) {
-			console.log(`level ${level}, root = ${root} key -> ${key}`);
+			log(`level ${level}, root = ${root} key -> ${key}`);
 			combinations *= countAllCombinations(root[key] as RecursivePrimitive, level + 1);
 		}
 	}
 
-	console.log(`level ${level}: ${combinations}`);
-	console.log("------------");
+	log(`level ${level}: ${combinations}`);
+	log("------------");
 	return combinations;
 }
 
 const res = createAllCombinations(structure1, 0, {}, "root");
 
 fs.writeFile("output.json", JSON.stringify(res, null, 4))
-	.then(() => console.log(`wrote ${res.length} objects to file`));
+	.then(() => log(`wrote ${res.length} objects to file`));
